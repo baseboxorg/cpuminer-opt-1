@@ -506,6 +506,7 @@ enum algos {
         ALGO_SKEIN2,      
         ALGO_S3,          
         ALGO_VANILLA,
+        ALGO_VELTOR,
         ALGO_WHIRLPOOL,
         ALGO_WHIRLPOOLX,
         ALGO_X11,
@@ -559,6 +560,7 @@ static const char *algo_names[] = {
         "skein2",
         "s3",
         "vanilla",
+        "veltor",
         "whirlpool",
         "whirlpoolx",
         "x11",
@@ -637,7 +639,7 @@ Options:\n\
                           bmw          BMW 256\n\
                           c11          flax\n\
                           cryptolight  Cryptonight-light\n\
-                          cryptonight  Monero\n\
+                          cryptonight  Monero (XMR)\n\
                           decred\n\
                           drop         Dropcoin\n\
                           fresh        Fresh\n\
@@ -650,7 +652,7 @@ Options:\n\
                           luffa        Luffa\n\
                           lyra2re      lyra2\n\
                           lyra2rev2    lyrav2\n\
-                          m7m\n\
+                          m7m          Magi (XMG)\n\
                           myr-gr       Myriad-Groestl\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\
                           nist5        Nist5\n\
@@ -667,6 +669,7 @@ Options:\n\
                           skein2       Double Skein (Woodcoin)\n\
                           s3           S3\n\
                           vanilla      blake256r8vnl (VCash)\n\
+                          veltor\n\
                           whirlpool\n\
                           whirlpoolx\n\
                           x11          X11\n\

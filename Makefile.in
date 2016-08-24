@@ -152,15 +152,16 @@ am__cpuminer_SOURCES_DIST = cpu-miner.c util.c uint256.cpp api.c \
 	algo/scryptjane/scrypt-jane.c algo/sha2/sha2.c \
 	algo/simd/sse2/nist.c algo/simd/sse2/vector.c \
 	algo/skein/skein.c algo/skein/skein2.c algo/s3.c \
-	algo/tiger/sph_tiger.c algo/whirlpool/whirlpool.c \
-	algo/whirlpool/whirlpoolx.c algo/x11/x11.c algo/x11/x11evo.c \
-	algo/x11/x11gost.c algo/x11/c11.c algo/x13/x13.c \
-	algo/x14/x14.c algo/x15/x15.c algo/x17/x17.c \
-	algo/yescrypt/yescrypt.c algo/yescrypt/yescrypt-common.c \
-	algo/yescrypt/sha256_Y.c algo/yescrypt/yescrypt-simd.c \
-	algo/zr5.c asm/neoscrypt_asm.S asm/sha2-x86.S asm/scrypt-x86.S \
-	asm/aesb-x86.S asm/sha2-x64.S asm/scrypt-x64.S asm/aesb-x64.S \
-	asm/sha2-arm.S asm/scrypt-arm.S compat/winansi.c
+	algo/tiger/sph_tiger.c algo/veltor.c \
+	algo/whirlpool/whirlpool.c algo/whirlpool/whirlpoolx.c \
+	algo/x11/x11.c algo/x11/x11evo.c algo/x11/x11gost.c \
+	algo/x11/c11.c algo/x13/x13.c algo/x14/x14.c algo/x15/x15.c \
+	algo/x17/x17.c algo/yescrypt/yescrypt.c \
+	algo/yescrypt/yescrypt-common.c algo/yescrypt/sha256_Y.c \
+	algo/yescrypt/yescrypt-simd.c algo/zr5.c asm/neoscrypt_asm.S \
+	asm/sha2-x86.S asm/scrypt-x86.S asm/aesb-x86.S asm/sha2-x64.S \
+	asm/scrypt-x64.S asm/aesb-x64.S asm/sha2-arm.S \
+	asm/scrypt-arm.S compat/winansi.c
 am__dirstamp = $(am__leading_dot)dirstamp
 @USE_ASM_TRUE@am__objects_1 = asm/cpuminer-neoscrypt_asm.$(OBJEXT)
 @ARCH_x86_TRUE@@USE_ASM_TRUE@am__objects_2 =  \
@@ -275,6 +276,7 @@ am_cpuminer_OBJECTS = cpuminer-cpu-miner.$(OBJEXT) \
 	algo/skein/cpuminer-skein2.$(OBJEXT) \
 	algo/cpuminer-s3.$(OBJEXT) \
 	algo/tiger/cpuminer-sph_tiger.$(OBJEXT) \
+	algo/cpuminer-veltor.$(OBJEXT) \
 	algo/whirlpool/cpuminer-whirlpool.$(OBJEXT) \
 	algo/whirlpool/cpuminer-whirlpoolx.$(OBJEXT) \
 	algo/x11/cpuminer-x11.$(OBJEXT) \
@@ -632,14 +634,15 @@ cpuminer_SOURCES = cpu-miner.c util.c uint256.cpp api.c sysinfos.c \
 	algo/scryptjane/scrypt-jane.c algo/sha2/sha2.c \
 	algo/simd/sse2/nist.c algo/simd/sse2/vector.c \
 	algo/skein/skein.c algo/skein/skein2.c algo/s3.c \
-	algo/tiger/sph_tiger.c algo/whirlpool/whirlpool.c \
-	algo/whirlpool/whirlpoolx.c algo/x11/x11.c algo/x11/x11evo.c \
-	algo/x11/x11gost.c algo/x11/c11.c algo/x13/x13.c \
-	algo/x14/x14.c algo/x15/x15.c algo/x17/x17.c \
-	algo/yescrypt/yescrypt.c algo/yescrypt/yescrypt-common.c \
-	algo/yescrypt/sha256_Y.c algo/yescrypt/yescrypt-simd.c \
-	algo/zr5.c $(am__append_1) $(am__append_2) $(am__append_3) \
-	$(am__append_4) $(am__append_6)
+	algo/tiger/sph_tiger.c algo/veltor.c \
+	algo/whirlpool/whirlpool.c algo/whirlpool/whirlpoolx.c \
+	algo/x11/x11.c algo/x11/x11evo.c algo/x11/x11gost.c \
+	algo/x11/c11.c algo/x13/x13.c algo/x14/x14.c algo/x15/x15.c \
+	algo/x17/x17.c algo/yescrypt/yescrypt.c \
+	algo/yescrypt/yescrypt-common.c algo/yescrypt/sha256_Y.c \
+	algo/yescrypt/yescrypt-simd.c algo/zr5.c $(am__append_1) \
+	$(am__append_2) $(am__append_3) $(am__append_4) \
+	$(am__append_6)
 disable_flags = $(am__append_5)
 cpuminer_LDFLAGS = @LDFLAGS@
 cpuminer_LDADD = @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ -lssl -lcrypto -lgmp
@@ -1213,6 +1216,8 @@ algo/tiger/$(DEPDIR)/$(am__dirstamp):
 	@: > algo/tiger/$(DEPDIR)/$(am__dirstamp)
 algo/tiger/cpuminer-sph_tiger.$(OBJEXT): algo/tiger/$(am__dirstamp) \
 	algo/tiger/$(DEPDIR)/$(am__dirstamp)
+algo/cpuminer-veltor.$(OBJEXT): algo/$(am__dirstamp) \
+	algo/$(DEPDIR)/$(am__dirstamp)
 algo/whirlpool/cpuminer-whirlpool.$(OBJEXT):  \
 	algo/whirlpool/$(am__dirstamp) \
 	algo/whirlpool/$(DEPDIR)/$(am__dirstamp)
@@ -1392,6 +1397,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@algo/$(DEPDIR)/cpuminer-pluck.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/$(DEPDIR)/cpuminer-s3.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/$(DEPDIR)/cpuminer-scrypt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@algo/$(DEPDIR)/cpuminer-veltor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/$(DEPDIR)/cpuminer-zr5.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/argon2/$(DEPDIR)/cpuminer-argon2a.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/argon2/ar2/$(DEPDIR)/cpuminer-ar2-scrypt-jane.Po@am__quote@
@@ -3008,6 +3014,20 @@ algo/tiger/cpuminer-sph_tiger.obj: algo/tiger/sph_tiger.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='algo/tiger/sph_tiger.c' object='algo/tiger/cpuminer-sph_tiger.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -c -o algo/tiger/cpuminer-sph_tiger.obj `if test -f 'algo/tiger/sph_tiger.c'; then $(CYGPATH_W) 'algo/tiger/sph_tiger.c'; else $(CYGPATH_W) '$(srcdir)/algo/tiger/sph_tiger.c'; fi`
+
+algo/cpuminer-veltor.o: algo/veltor.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -MT algo/cpuminer-veltor.o -MD -MP -MF algo/$(DEPDIR)/cpuminer-veltor.Tpo -c -o algo/cpuminer-veltor.o `test -f 'algo/veltor.c' || echo '$(srcdir)/'`algo/veltor.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) algo/$(DEPDIR)/cpuminer-veltor.Tpo algo/$(DEPDIR)/cpuminer-veltor.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='algo/veltor.c' object='algo/cpuminer-veltor.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -c -o algo/cpuminer-veltor.o `test -f 'algo/veltor.c' || echo '$(srcdir)/'`algo/veltor.c
+
+algo/cpuminer-veltor.obj: algo/veltor.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -MT algo/cpuminer-veltor.obj -MD -MP -MF algo/$(DEPDIR)/cpuminer-veltor.Tpo -c -o algo/cpuminer-veltor.obj `if test -f 'algo/veltor.c'; then $(CYGPATH_W) 'algo/veltor.c'; else $(CYGPATH_W) '$(srcdir)/algo/veltor.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) algo/$(DEPDIR)/cpuminer-veltor.Tpo algo/$(DEPDIR)/cpuminer-veltor.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='algo/veltor.c' object='algo/cpuminer-veltor.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -c -o algo/cpuminer-veltor.obj `if test -f 'algo/veltor.c'; then $(CYGPATH_W) 'algo/veltor.c'; else $(CYGPATH_W) '$(srcdir)/algo/veltor.c'; fi`
 
 algo/whirlpool/cpuminer-whirlpool.o: algo/whirlpool/whirlpool.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -MT algo/whirlpool/cpuminer-whirlpool.o -MD -MP -MF algo/whirlpool/$(DEPDIR)/cpuminer-whirlpool.Tpo -c -o algo/whirlpool/cpuminer-whirlpool.o `test -f 'algo/whirlpool/whirlpool.c' || echo '$(srcdir)/'`algo/whirlpool/whirlpool.c

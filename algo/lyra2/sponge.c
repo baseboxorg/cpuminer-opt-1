@@ -36,7 +36,27 @@
  *
  * @param state         The 1024-bit array to be initialized
  */
-void initState(uint64_t state[/*16*/]) {
+void initState(uint64_t state[/*16*/])
+{
+#ifdef __AVX2__
+
+  (*(__m256i*)(&state[0])) = _mm256_setzero_si256();
+  (*(__m256i*)(&state[4])) = _mm256_setzero_si256();
+
+  (*(__m256i*)(&state[8])) = _mm256_set_epi64x( blake2b_IV[3],
+                                                blake2b_IV[2],
+                                                blake2b_IV[1],
+                                                blake2b_IV[0] );
+  (*(__m256i*)(&state[12])) = _mm256_set_epi64x(blake2b_IV[7],
+                                                blake2b_IV[6],
+                                                blake2b_IV[5],
+                                                blake2b_IV[4] );
+
+//AVX is around the same number of instructions as unnoptimized
+//#elif defined __AVX__
+
+#else
+
 	//First 512 bis are zeros
 	memset(state, 0, 64);
 	//Remainder BLOCK_LEN_BLAKE2_SAFE_BYTES are reserved to the IV
@@ -48,79 +68,6 @@ void initState(uint64_t state[/*16*/]) {
 	state[13] = blake2b_IV[5];
 	state[14] = blake2b_IV[6];
 	state[15] = blake2b_IV[7];
-}
-
-inline static void lyra_round( uint64_t *v )
-{
-#ifdef __AVX2__
-
-   __m256i a = _mm256_load_si256( (__m256i*)(&v[ 0]) );
-   __m256i b = _mm256_load_si256( (__m256i*)(&v[ 4]) );
-   __m256i c = _mm256_load_si256( (__m256i*)(&v[ 8]) );
-   __m256i d = _mm256_load_si256( (__m256i*)(&v[12]) );
-
-   G_4X64( a, b, c, d );
-
-   // swap words
-   b = mm256_rotl256_1x64( b );
-   c = mm256_swap128( c );
-   d = mm256_rotr256_1x64( d );
-
-   G_4X64( a, b, c, d );
-
-   // unswap
-   b = mm256_rotr256_1x64( b );
-   c = mm256_swap128( c );
-   d = mm256_rotl256_1x64( d );
-
-   _mm256_store_si256( (__m256i*)(&v[ 0]), a );
-   _mm256_store_si256( (__m256i*)(&v[ 4]), b );
-   _mm256_store_si256( (__m256i*)(&v[ 8]), c );
-   _mm256_store_si256( (__m256i*)(&v[12]), d );
-
-#elif defined __AVX__
-
-   __m128i a0, a1, b0, b1, c0, c1, d0, d1;
-
-   a0 = _mm_load_si128( (__m128i*)(&v[ 0]) );
-   a1 = _mm_load_si128( (__m128i*)(&v[ 2]) );
-   b0 = _mm_load_si128( (__m128i*)(&v[ 4]) );
-   b1 = _mm_load_si128( (__m128i*)(&v[ 6]) );
-   c0 = _mm_load_si128( (__m128i*)(&v[ 8]) );
-   c1 = _mm_load_si128( (__m128i*)(&v[10]) );
-   d0 = _mm_load_si128( (__m128i*)(&v[12]) );
-   d1 = _mm_load_si128( (__m128i*)(&v[14]) );
-
-   G_2X64( a0, b0, c0, d0 );
-   G_2X64( a1, b1, c1, d1 );
-
-   // swap words
-   mm128_rotl256_1x64( b0, b1 );
-   mm128_swap128( c0, c1 );
-   mm128_rotr256_1x64( d0, d1 );
-
-   G_2X64( a0, b0, c0, d0 );
-   G_2X64( a1, b1, c1, d1 );
-
-   // unswap
-   mm128_rotr256_1x64( b0, b1 );
-   mm128_swap128( c0, c1 );
-   mm128_rotl256_1x64( d0, d1 );
-
-   _mm_store_si128( (__m128i*)(&v[ 0]), a0 );
-   _mm_store_si128( (__m128i*)(&v[ 2]), a1 );
-   _mm_store_si128( (__m128i*)(&v[ 4]), b0 );
-   _mm_store_si128( (__m128i*)(&v[ 6]), b1 );
-   _mm_store_si128( (__m128i*)(&v[ 8]), c0 );
-   _mm_store_si128( (__m128i*)(&v[10]), c1 );
-   _mm_store_si128( (__m128i*)(&v[12]), d0 );
-   _mm_store_si128( (__m128i*)(&v[14]), d1 );
-
-#else
-
-   // macro assumes v is defined
-   ROUND_LYRA(0);
-
 #endif
 }
 
@@ -129,20 +76,58 @@ inline static void lyra_round( uint64_t *v )
  *
  * @param v     A 1024-bit (16 uint64_t) array to be processed by Blake2b's G function
  */
-__inline static void blake2bLyra(uint64_t *v)
+__inline static void blake2bLyra( uint64_t *v )
 {
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
-   lyra_round( v );
+#if defined __AVX2__
+
+   LYRA_INIT_AVX2;         // defines local a[4]
+   LYRA_ROUND_AVX2;
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_ROUND_AVX2;   
+   LYRA_CLOSE_AVX2;
+
+#elif defined __AVX__
+
+   LYRA_INIT_AVX;         // defines locals a0[4], a1[4]
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_ROUND_AVX;
+   LYRA_CLOSE_AVX;
+
+#else
+
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+   ROUND_LYRA(0);
+
+#endif
 }
 
 /**
@@ -151,7 +136,17 @@ __inline static void blake2bLyra(uint64_t *v)
  */
 __inline static void reducedBlake2bLyra(uint64_t *v) {
 
-   lyra_round( v );
+#if defined __AVX2__
+   LYRA_INIT_AVX2;         // defines local a[4]
+   LYRA_ROUND_AVX2;
+   LYRA_CLOSE_AVX2;
+#elif defined __AVX__
+   LYRA_INIT_AVX;         // defines locals a0[4], a1[4]
+   LYRA_ROUND_AVX;
+   LYRA_CLOSE_AVX;
+#else
+   ROUND_LYRA(0);
+#endif
 }
 
 /**
@@ -179,7 +174,6 @@ void squeeze(uint64_t *state, byte *out, unsigned int len)
 	memcpy(ptr, state, (len % BLOCK_LEN_BYTES));
 }
 
-
 /**
  * Performs an absorb operation for a single block (BLOCK_LEN_INT64 words
  * of type uint64_t), using Blake2b's G function as the internal permutation
@@ -192,8 +186,9 @@ void absorbBlock(uint64_t *state, const uint64_t *in)
 //XORs the first BLOCK_LEN_INT64 words of "in" with the current state
 #if defined __AVX2__
 
-    __m256i state_v[2], in_v[2];
+    __m256i state_v[3], in_v[3];
 
+    // only state is guaranteed aligned 256
     state_v[0] = _mm256_load_si256( (__m256i*)(&state[0]) );
     in_v   [0] = _mm256_loadu_si256( (__m256i*)(&in[0]) );
     state_v[1] = _mm256_load_si256( (__m256i*)(&state[4]) );
@@ -210,7 +205,7 @@ void absorbBlock(uint64_t *state, const uint64_t *in)
 
 #elif defined __AVX__
 
-    __m128i state_v[4], in_v[4];
+    __m128i state_v[6], in_v[6];
 
     state_v[0] = _mm_load_si128( (__m128i*)(&state[0]) );
     state_v[1] = _mm_load_si128( (__m128i*)(&state[2]) );
@@ -219,12 +214,12 @@ void absorbBlock(uint64_t *state, const uint64_t *in)
     state_v[4] = _mm_load_si128( (__m128i*)(&state[8]) );
     state_v[5] = _mm_load_si128( (__m128i*)(&state[10]) );
 
-    in_v[0]    = _mm_loadu_si128( (__m128i*)(&in[0]) );
-    in_v[1]    = _mm_loadu_si128( (__m128i*)(&in[2]) );
-    in_v[2]    = _mm_loadu_si128( (__m128i*)(&in[4]) );
-    in_v[3]    = _mm_loadu_si128( (__m128i*)(&in[6]) );
-    in_v[4]    = _mm_loadu_si128( (__m128i*)(&in[8]) );
-    in_v[5]    = _mm_loadu_si128( (__m128i*)(&in[10]) );
+    in_v[0]    = _mm_load_si128( (__m128i*)(&in[0]) );
+    in_v[1]    = _mm_load_si128( (__m128i*)(&in[2]) );
+    in_v[2]    = _mm_load_si128( (__m128i*)(&in[4]) );
+    in_v[3]    = _mm_load_si128( (__m128i*)(&in[6]) );
+    in_v[4]    = _mm_load_si128( (__m128i*)(&in[8]) );
+    in_v[5]    = _mm_load_si128( (__m128i*)(&in[10]) );
 
     _mm_store_si128( (__m128i*)(&state[0]),
                        _mm_xor_si128( state_v[0], in_v[0] ) );
@@ -295,10 +290,10 @@ void absorbBlockBlake2Safe(uint64_t *state, const uint64_t *in)
     state_v[2] = _mm_load_si128( (__m128i*)(&state[4]) );
     state_v[3] = _mm_load_si128( (__m128i*)(&state[6]) );
 
-    in_v[0]    = _mm_loadu_si128( (__m128i*)(&in[0]) );
-    in_v[1]    = _mm_loadu_si128( (__m128i*)(&in[2]) );
-    in_v[2]    = _mm_loadu_si128( (__m128i*)(&in[4]) );
-    in_v[3]    = _mm_loadu_si128( (__m128i*)(&in[6]) );
+    in_v[0]    = _mm_load_si128( (__m128i*)(&in[0]) );
+    in_v[1]    = _mm_load_si128( (__m128i*)(&in[2]) );
+    in_v[2]    = _mm_load_si128( (__m128i*)(&in[4]) );
+    in_v[3]    = _mm_load_si128( (__m128i*)(&in[6]) );
 
     _mm_store_si128( (__m128i*)(&state[0]),
                        _mm_xor_si128( state_v[0], in_v[0] ) );
@@ -337,29 +332,57 @@ blake2bLyra(state);
  */
 void reducedSqueezeRow0(uint64_t* state, uint64_t* rowOut, const uint32_t nCols)
 {
-	uint64_t* ptrWord = rowOut + (nCols-1)*BLOCK_LEN_INT64; //In Lyra2: pointer to M[0][C-1]
-	unsigned int i;
-	//M[row][C-1-col] = H.reduced_squeeze()
-	for (i = 0; i < nCols; i++) {
-		ptrWord[0] = state[0];
-		ptrWord[1] = state[1];
-		ptrWord[2] = state[2];
-		ptrWord[3] = state[3];
-		ptrWord[4] = state[4];
-		ptrWord[5] = state[5];
-		ptrWord[6] = state[6];
-		ptrWord[7] = state[7];
-		ptrWord[8] = state[8];
-		ptrWord[9] = state[9];
-		ptrWord[10] = state[10];
-		ptrWord[11] = state[11];
+   uint64_t* ptrWord = rowOut + (nCols-1)*BLOCK_LEN_INT64; //In Lyra2: pointer to M[0][C-1]
+   unsigned int i;
+   //M[row][C-1-col] = H.reduced_squeeze()
+   for (i = 0; i < nCols; i++)
+   {
+#if defined __AVX2__
 
-		//Goes to next block (column) that will receive the squeezed data
-		ptrWord -= BLOCK_LEN_INT64;
+      _mm256_storeu_si256( (__m256i*)&ptrWord[0],
+                          _mm256_load_si256( (__m256i*)(&state[0]) ) );
+      _mm256_storeu_si256( (__m256i*)&ptrWord[4],
+                          _mm256_load_si256( (__m256i*)(&state[4]) ) );
+      _mm256_storeu_si256( (__m256i*)&ptrWord[8],
+                          _mm256_load_si256( (__m256i*)(&state[8]) ) );
 
-		//Applies the reduced-round transformation f to the sponge's state
-		reducedBlake2bLyra(state);
-	}
+#elif defined __AVX__
+
+      _mm_store_si128( (__m128i*)(&ptrWord[0]),
+                       _mm_load_si128( (__m128i*)(&state[0]) ) );
+      _mm_store_si128( (__m128i*)(&ptrWord[2]),
+                       _mm_load_si128( (__m128i*)(&state[2]) ) );
+      _mm_store_si128( (__m128i*)(&ptrWord[4]),
+                       _mm_load_si128( (__m128i*)(&state[4]) ) );
+      _mm_store_si128( (__m128i*)(&ptrWord[6]),
+                       _mm_load_si128( (__m128i*)(&state[6]) ) );
+      _mm_store_si128( (__m128i*)(&ptrWord[8]),
+                       _mm_load_si128( (__m128i*)(&state[8]) ) );
+      _mm_store_si128( (__m128i*)(&ptrWord[10]),
+                       _mm_load_si128( (__m128i*)(&state[10]) ) );
+
+#else
+
+	ptrWord[0] = state[0];
+	ptrWord[1] = state[1];
+	ptrWord[2] = state[2];
+	ptrWord[3] = state[3];
+	ptrWord[4] = state[4];
+	ptrWord[5] = state[5];
+	ptrWord[6] = state[6];
+	ptrWord[7] = state[7];
+	ptrWord[8] = state[8];
+	ptrWord[9] = state[9];
+	ptrWord[10] = state[10];
+	ptrWord[11] = state[11];
+#endif
+
+	//Goes to next block (column) that will receive the squeezed data
+	ptrWord -= BLOCK_LEN_INT64;
+
+	//Applies the reduced-round transformation f to the sponge's state
+	reducedBlake2bLyra(state);
+    }
 }
 
 /**
@@ -400,7 +423,7 @@ void reducedDuplexRow1(uint64_t *state, uint64_t *rowIn, uint64_t *rowOut, const
 
       #elif defined __AVX__
 
-         __m128i state_v[6], in_v[6];
+        __m128i state_v[6], in_v[6];
 
          state_v[0] = _mm_load_si128( (__m128i*)(&state[0]) );
          state_v[1] = _mm_load_si128( (__m128i*)(&state[2]) );
@@ -409,12 +432,12 @@ void reducedDuplexRow1(uint64_t *state, uint64_t *rowIn, uint64_t *rowOut, const
          state_v[4] = _mm_load_si128( (__m128i*)(&state[8]) );
          state_v[5] = _mm_load_si128( (__m128i*)(&state[10]) );
 
-         in_v[0]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[0]) );
-         in_v[1]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[2]) );
-         in_v[2]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[4]) );
-         in_v[3]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[6]) );
-         in_v[4]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[8]) );
-         in_v[5]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[10]) );
+         in_v[0]    = _mm_load_si128( (__m128i*)(&ptrWordIn[0]) );
+         in_v[1]    = _mm_load_si128( (__m128i*)(&ptrWordIn[2]) );
+         in_v[2]    = _mm_load_si128( (__m128i*)(&ptrWordIn[4]) );
+         in_v[3]    = _mm_load_si128( (__m128i*)(&ptrWordIn[6]) );
+         in_v[4]    = _mm_load_si128( (__m128i*)(&ptrWordIn[8]) );
+         in_v[5]    = _mm_load_si128( (__m128i*)(&ptrWordIn[10]) );
 
          _mm_store_si128( (__m128i*)(&state[0]),
                            _mm_xor_si128( state_v[0], in_v[0] ) );
@@ -451,14 +474,9 @@ void reducedDuplexRow1(uint64_t *state, uint64_t *rowIn, uint64_t *rowOut, const
 
       //M[row][C-1-col] = M[prev][col] XOR rand
       #if defined __AVX2__
-// in_v should not need to be reloaded, but it does and it segfaults if
-// loading alogned
          state_v[0] = _mm256_load_si256( (__m256i*)(&state[0]) );
-         in_v   [0] = _mm256_loadu_si256( (__m256i*)(&ptrWordIn[0]) );
          state_v[1] = _mm256_load_si256( (__m256i*)(&state[4]) );
-         in_v   [1] = _mm256_loadu_si256( (__m256i*)(&ptrWordIn[4]) );
          state_v[2] = _mm256_load_si256( (__m256i*)(&state[8]) );
-         in_v   [2] = _mm256_loadu_si256( (__m256i*)(&ptrWordIn[8]) );
 
          _mm256_storeu_si256( (__m256i*)(&ptrWordOut[0]),
                               _mm256_xor_si256( state_v[0], in_v[0] ) );
@@ -475,13 +493,6 @@ void reducedDuplexRow1(uint64_t *state, uint64_t *rowIn, uint64_t *rowOut, const
          state_v[3] = _mm_load_si128( (__m128i*)(&state[6]) );
          state_v[4] = _mm_load_si128( (__m128i*)(&state[8]) );
          state_v[5] = _mm_load_si128( (__m128i*)(&state[10]) );
-
-         in_v[0]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[0]) );
-         in_v[1]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[2]) );
-         in_v[2]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[4]) );
-         in_v[3]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[6]) );
-         in_v[4]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[8]) );
-         in_v[5]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[10]) );
 
          _mm_storeu_si128( (__m128i*)(&ptrWordOut[0]),
                            _mm_xor_si128( state_v[0], in_v[0] ) );
@@ -580,19 +591,19 @@ void reducedDuplexRowSetup(uint64_t *state, uint64_t *rowIn, uint64_t *rowInOut,
         state_v[4] = _mm_load_si128( (__m128i*)(&state[8]) );
         state_v[5] = _mm_load_si128( (__m128i*)(&state[10]) );
 
-        inout_v[0]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[0]) );
-        inout_v[1]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[2]) );
-        inout_v[2]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[4]) );
-        inout_v[3]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[6]) );
-        inout_v[4]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[8]) );
-        inout_v[5]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[10]) );
+        inout_v[0]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[0]) );
+        inout_v[1]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[2]) );
+        inout_v[2]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[4]) );
+        inout_v[3]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[6]) );
+        inout_v[4]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[8]) );
+        inout_v[5]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[10]) );
 
-        in_v[0]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[0]) );
-        in_v[1]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[2]) );
-        in_v[2]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[4]) );
-        in_v[3]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[6]) );
-        in_v[4]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[8]) );
-        in_v[5]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[10]) );
+        in_v[0]    = _mm_load_si128( (__m128i*)(&ptrWordIn[0]) );
+        in_v[1]    = _mm_load_si128( (__m128i*)(&ptrWordIn[2]) );
+        in_v[2]    = _mm_load_si128( (__m128i*)(&ptrWordIn[4]) );
+        in_v[3]    = _mm_load_si128( (__m128i*)(&ptrWordIn[6]) );
+        in_v[4]    = _mm_load_si128( (__m128i*)(&ptrWordIn[8]) );
+        in_v[5]    = _mm_load_si128( (__m128i*)(&ptrWordIn[10]) );
 
         _mm_store_si128( (__m128i*)(&state[0]),
                           _mm_xor_si128( state_v[0],
@@ -642,11 +653,8 @@ void reducedDuplexRowSetup(uint64_t *state, uint64_t *rowIn, uint64_t *rowInOut,
       #if defined __AVX2__
 
          state_v[0] = _mm256_load_si256( (__m256i*)(&state[0]) );
-         in_v   [0] = _mm256_loadu_si256( (__m256i*)(&ptrWordIn[0]) );
          state_v[1] = _mm256_load_si256( (__m256i*)(&state[4]) );
-         in_v   [1] = _mm256_loadu_si256( (__m256i*)(&ptrWordIn[4]) );
          state_v[2] = _mm256_load_si256( (__m256i*)(&state[8]) );
-         in_v   [2] = _mm256_loadu_si256( (__m256i*)(&ptrWordIn[8]) );
 
          _mm256_storeu_si256( (__m256i*)(&ptrWordOut[0]),
                               _mm256_xor_si256( state_v[0], in_v[0] ) );
@@ -664,24 +672,17 @@ void reducedDuplexRowSetup(uint64_t *state, uint64_t *rowIn, uint64_t *rowInOut,
          state_v[4] = _mm_load_si128( (__m128i*)(&state[8]) );
          state_v[5] = _mm_load_si128( (__m128i*)(&state[10]) );
 
-         in_v[0]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[0]) );
-         in_v[1]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[2]) );
-         in_v[2]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[4]) );
-         in_v[3]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[6]) );
-         in_v[4]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[8]) );
-         in_v[5]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[10]) );
-
-         _mm_storeu_si128( (__m128i*)(&ptrWordOut[0]),
+         _mm_store_si128( (__m128i*)(&ptrWordOut[0]),
                            _mm_xor_si128( state_v[0], in_v[0] ) );
-         _mm_storeu_si128( (__m128i*)(&ptrWordOut[2]),
+         _mm_store_si128( (__m128i*)(&ptrWordOut[2]),
                            _mm_xor_si128( state_v[1], in_v[1] ) );
-         _mm_storeu_si128( (__m128i*)(&ptrWordOut[4]),
+         _mm_store_si128( (__m128i*)(&ptrWordOut[4]),
                            _mm_xor_si128( state_v[2], in_v[2] ) );
-         _mm_storeu_si128( (__m128i*)(&ptrWordOut[6]),
+         _mm_store_si128( (__m128i*)(&ptrWordOut[6]),
                            _mm_xor_si128( state_v[3], in_v[3] ) );
-         _mm_storeu_si128( (__m128i*)(&ptrWordOut[8]),
+         _mm_store_si128( (__m128i*)(&ptrWordOut[8]),
                            _mm_xor_si128( state_v[4], in_v[4] ) );
-         _mm_storeu_si128( (__m128i*)(&ptrWordOut[10]),
+         _mm_store_si128( (__m128i*)(&ptrWordOut[10]),
                            _mm_xor_si128( state_v[5], in_v[5] ) );
 
       #else
@@ -786,19 +787,19 @@ void reducedDuplexRow(uint64_t *state, uint64_t *rowIn, uint64_t *rowInOut, uint
        state_v[4] = _mm_load_si128( (__m128i*)(&state[8]) );
        state_v[5] = _mm_load_si128( (__m128i*)(&state[10]) );
 
-       inout_v[0]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[0]) );
-       inout_v[1]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[2]) );
-       inout_v[2]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[4]) );
-       inout_v[3]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[6]) );
-       inout_v[4]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[8]) );
-       inout_v[5]    = _mm_loadu_si128( (__m128i*)(&ptrWordInOut[10]) );
+       inout_v[0]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[0]) );
+       inout_v[1]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[2]) );
+       inout_v[2]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[4]) );
+       inout_v[3]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[6]) );
+       inout_v[4]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[8]) );
+       inout_v[5]    = _mm_load_si128( (__m128i*)(&ptrWordInOut[10]) );
 
-       in_v[0]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[0]) );
-       in_v[1]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[2]) );
-       in_v[2]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[4]) );
-       in_v[3]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[6]) );
-       in_v[4]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[8]) );
-       in_v[5]    = _mm_loadu_si128( (__m128i*)(&ptrWordIn[10]) );
+       in_v[0]    = _mm_load_si128( (__m128i*)(&ptrWordIn[0]) );
+       in_v[1]    = _mm_load_si128( (__m128i*)(&ptrWordIn[2]) );
+       in_v[2]    = _mm_load_si128( (__m128i*)(&ptrWordIn[4]) );
+       in_v[3]    = _mm_load_si128( (__m128i*)(&ptrWordIn[6]) );
+       in_v[4]    = _mm_load_si128( (__m128i*)(&ptrWordIn[8]) );
+       in_v[5]    = _mm_load_si128( (__m128i*)(&ptrWordIn[10]) );
 
        _mm_store_si128( (__m128i*)(&state[0]),
                          _mm_xor_si128( state_v[0],
@@ -870,24 +871,24 @@ void reducedDuplexRow(uint64_t *state, uint64_t *rowIn, uint64_t *rowInOut, uint
        state_v[4] = _mm_load_si128( (__m128i*)(&state[8]) );
        state_v[5] = _mm_load_si128( (__m128i*)(&state[10]) );
 
-       out_v[0]    = _mm_loadu_si128( (__m128i*)(&ptrWordOut[0]) );
-       out_v[1]    = _mm_loadu_si128( (__m128i*)(&ptrWordOut[2]) );
-       out_v[2]    = _mm_loadu_si128( (__m128i*)(&ptrWordOut[4]) );
-       out_v[3]    = _mm_loadu_si128( (__m128i*)(&ptrWordOut[6]) );
-       out_v[4]    = _mm_loadu_si128( (__m128i*)(&ptrWordOut[8]) );
-       out_v[5]    = _mm_loadu_si128( (__m128i*)(&ptrWordOut[10]) );
+       out_v[0]    = _mm_load_si128( (__m128i*)(&ptrWordOut[0]) );
+       out_v[1]    = _mm_load_si128( (__m128i*)(&ptrWordOut[2]) );
+       out_v[2]    = _mm_load_si128( (__m128i*)(&ptrWordOut[4]) );
+       out_v[3]    = _mm_load_si128( (__m128i*)(&ptrWordOut[6]) );
+       out_v[4]    = _mm_load_si128( (__m128i*)(&ptrWordOut[8]) );
+       out_v[5]    = _mm_load_si128( (__m128i*)(&ptrWordOut[10]) );
 
-       _mm_storeu_si128( (__m128i*)(&ptrWordOut[0]),
+       _mm_store_si128( (__m128i*)(&ptrWordOut[0]),
                          _mm_xor_si128( state_v[0], out_v[0] ) );
-       _mm_storeu_si128( (__m128i*)(&ptrWordOut[2]),
+       _mm_store_si128( (__m128i*)(&ptrWordOut[2]),
                          _mm_xor_si128( state_v[1], out_v[1] ) );
-       _mm_storeu_si128( (__m128i*)(&ptrWordOut[4]),
+       _mm_store_si128( (__m128i*)(&ptrWordOut[4]),
                          _mm_xor_si128( state_v[2], out_v[2] ) );
-       _mm_storeu_si128( (__m128i*)(&ptrWordOut[6]),
+       _mm_store_si128( (__m128i*)(&ptrWordOut[6]),
                          _mm_xor_si128( state_v[3], out_v[3] ) );
-       _mm_storeu_si128( (__m128i*)(&ptrWordOut[8]),
+       _mm_store_si128( (__m128i*)(&ptrWordOut[8]),
                          _mm_xor_si128( state_v[4], out_v[4] ) );
-       _mm_storeu_si128( (__m128i*)(&ptrWordOut[10]),
+       _mm_store_si128( (__m128i*)(&ptrWordOut[10]),
                          _mm_xor_si128( state_v[5], out_v[5] ) );
 
     #else

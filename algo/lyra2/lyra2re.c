@@ -42,7 +42,10 @@ void lyra2re_hash(void *state, const void *input)
         lyra2re_ctx_holder ctx;
         memcpy(&ctx, &lyra2re_ctx, sizeof(lyra2re_ctx));
 
-	uint32_t hashA[8], hashB[8];
+//        uint32_t _ALIGN(128) hashA[8], hashB[8];
+	uint32_t _ALIGN(128) hash[32];
+        #define hashA hash
+        #define hashB hash+16
 
 	sph_blake256(&ctx.blake, input, 80);
 	sph_blake256_close(&ctx.blake, hashA);

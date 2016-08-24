@@ -67,7 +67,7 @@ int LYRA2(void *K, int64_t kLen, const void *pwd, int32_t pwdlen, const void *sa
 	const int64_t BLOCK_LEN = (nCols == 4) ? BLOCK_LEN_BLAKE2_SAFE_INT64 : BLOCK_LEN_BLAKE2_SAFE_BYTES;
 
 	i = (int64_t)ROW_LEN_BYTES * nRows;
-	uint64_t _ALIGN(256) *wholeMatrix = malloc(i);
+	uint64_t *wholeMatrix = malloc(i);
 	if (wholeMatrix == NULL) {
 		return -1;
 	}

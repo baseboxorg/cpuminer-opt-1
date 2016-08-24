@@ -15,9 +15,10 @@
 
 //#if defined(OPTIMIZE_SSE2)
 
-static inline void transform( cubehashParam *sp )
+static void transform( cubehashParam *sp )
 {
     int r;
+    const int rounds = sp->rounds;
 
 #ifdef __AVX2__
 
@@ -31,7 +32,7 @@ static inline void transform( cubehashParam *sp )
     x2 = _mm256_load_si256( 4 + sp->x );
     x3 = _mm256_load_si256( 6 + sp->x );
 
-    for ( r = 0; r < sp->rounds; ++r )
+    for ( r = 0; r < rounds; ++r )
     { 
         x2 = _mm256_add_epi32( x0, x2 );
         x3 = _mm256_add_epi32( x1, x3 );
@@ -80,7 +81,7 @@ static inline void transform( cubehashParam *sp )
     x6 = _mm_load_si128(6 + sp->x);
     x7 = _mm_load_si128(7 + sp->x);
 
-    for (r = 0; r < sp->rounds; ++r) {
+    for (r = 0; r < rounds; ++r) {
 	x4 = _mm_add_epi32(x0, x4);
 	x5 = _mm_add_epi32(x1, x5);
 	x6 = _mm_add_epi32(x2, x6);
@@ -140,7 +141,7 @@ static inline void transform( cubehashParam *sp )
     uint32_t y[16];
     int i;
 
-    for (r = 0; r < sp->rounds; ++r) {
+    for (r = 0; r < rounds; ++r) {
 
 	for (i = 0; i < 16; ++i) sp->x[i + 16] += sp->x[i];
 
