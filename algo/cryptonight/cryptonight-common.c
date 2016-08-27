@@ -82,7 +82,6 @@ int scanhash_cryptonight( int thr_id, struct work *work, uint32_t max_nonce,
     const uint32_t first_nonce = n + 1;
     const uint32_t Htarg = ptarget[7];
     uint32_t hash[32 / 4] __attribute__((aligned(32)));
-
     do
     {
        *nonceptr = ++n;

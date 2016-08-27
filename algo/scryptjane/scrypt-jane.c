@@ -25,6 +25,12 @@
 #include "../scryptjane/scrypt-jane-romix.h"
 #include "../scryptjane/scrypt-jane-test-vectors.h"
 
+#ifndef min
+#define min(a,b) (a>b ? b : a)
+#endif
+#ifndef max 
+#define max(a,b) (a<b ? b : a)
+#endif
 
 #define scrypt_maxN 30  /* (1 << (30 + 1)) = ~2 billion */
 #if (SCRYPT_BLOCK_BYTES == 64)

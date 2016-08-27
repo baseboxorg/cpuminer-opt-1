@@ -6,6 +6,13 @@
 #include <stdint.h>
 #include <memory.h>
 
+#ifndef min
+#define min(a,b) (a>b ? b : a)
+#endif
+#ifndef max 
+#define max(a,b) (a<b ? b : a)
+#endif
+
 #define DECRED_NBITS_INDEX 29
 #define DECRED_NTIME_INDEX 34
 #define DECRED_NONCE_INDEX 35

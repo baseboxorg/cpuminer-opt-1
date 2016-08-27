@@ -147,9 +147,11 @@ void jr2_init_nonce( struct work* work, struct work* g_work, int thr_id )
    {
        work_free( work );
        work_copy( work, g_work );
-       *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
-       if ( opt_randomize )
-             *nonceptr += ( (rand() *4 ) & UINT32_MAX ) / opt_n_threads;
+       *nonceptr = ( *nonceptr & 0xff000000U ) +
+                      ( 0xffffffU / opt_n_threads * thr_id );
+//       *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
+//       if ( opt_randomize )
+//             *nonceptr += ( (rand() *4 ) & UINT32_MAX ) / opt_n_threads;
    }
    else
        ++(*nonceptr);

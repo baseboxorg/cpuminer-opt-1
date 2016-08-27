@@ -1,4 +1,4 @@
-Release 3.4.3 of cpuminer-opt is available for download with support for
+Release 3.4.4 of cpuminer-opt is available for download with support for
 Windows.
 
 cpuminer-opt now supports 38 algorithms on CPUs with at least SSE2
@@ -10,14 +10,12 @@ CPUs with AES_NI for even greater performance, including the Intel
 Westbridge and newer and AMD equivalent. See the performance
 comparison below.
 
-New in 3.4.3
+New in 3.4.4
 
-- imported optimized m7m, +42%
-
-New in 3.4.2
-
-- added veltor algo
-- tweaked lyra2 AVX/AVX2 code for small improvement.
+- fixed compile errors on Westmere CPUs, this is an interim fix that
+  will compile without AES on Westmere
+- added support for cryptonight at Nicehash, some rejects may be produced
+  at Nicehash only,it appears to be a pool issue.
 
 Users with non-SSE2 CPUs or who want to mine algos not supported by
 cpuminer-opt may find cpuminer-multi by TPruvot useful.

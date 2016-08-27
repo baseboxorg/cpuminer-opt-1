@@ -738,11 +738,12 @@ static int share_result( int result, struct work *work, const char *reason )
 	sres = (result ? CL_GRN "yes!" CL_N : CL_RED "nooooo" CL_N );
    else
 	sres = (result ? "(yes!!!)" : "(nooooo)");
+
+   // Contrary to convention 100% means zero rejects, exactly 100%. 
+   // Rates > 99% and < 100% (rejects>0) display 99.9%.
    if ( accepted_rate == 100.0 )
       sprintf( accepted_rate_s, "%.0f", accepted_rate );
    else
-       // non-zero rejects, add decimal place but prevent displaying 100.0% due
-       // to rounding up
        sprintf( accepted_rate_s, "%.1f", ( accepted_rate < 99.9 )
                                            ? accepted_rate : 99.9 );
 
@@ -814,7 +815,8 @@ void jr2_build_stratum_request( char *req, struct work *work )
    algo_gate.hash_suw( hash, work->data );
    char *hashhex = abin2hex(hash, 32);
    snprintf( req, JSON_BUF_LEN,
-        "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":4}\r\n",
+        "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":4}",
+//        "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":4}\r\n",
           rpc2_id, work->job_id, noncestr, hashhex );
    free( hashhex );
 }
@@ -1448,12 +1450,16 @@ bool std_gen_work_now( int thr_id, struct work *work, struct work *g_work )
             && !( memcmp( work->data, g_work->data, algo_gate.work_cmp_size ) );
 }
 
-bool jr2_gen_work_now( int thr_id, struct work *work, struct work *g_work )
+bool jr2_gen_work_now( int thr_id, struct work *work, struct work *g_work,
+                       uint32_t *end_nonce_ptr )
 {
+   // need to update end_nonce
    const int nonce_byte_index = algo_gate.nonce_index;
-   uint32_t end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1) - 0x20;
+   *end_nonce_ptr = ( *algo_gate.get_nonceptr( work->data ) & 0xff000000U )
+                      + ( 0xffffffU / opt_n_threads * (thr_id + 1) - 0x20 );
+//   uint32_t end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1) - 0x20;
    // byte data[ 0..38, 43..75 ], skip over misaligned nonce [39..42]
-   return ( work->data[ nonce_byte_index ] >= end_nonce )
+   return ( work->data[ nonce_byte_index ] >= *end_nonce_ptr )
          && !(   memcmp( work->data, g_work->data, nonce_byte_index )
              ||  memcmp( ((uint8_t*) work->data)   + JR2_WORK_CMP_INDEX_2,
                          ((uint8_t*) g_work->data) + JR2_WORK_CMP_INDEX_2,
@@ -1550,8 +1556,9 @@ static void *miner_thread( void *userdata )
           {
               algo_gate.wait_for_diff( &stratum );
  	      pthread_mutex_lock( &g_work_lock );
-              if ( algo_gate.gen_work_now( thr_id, &work, &g_work ) )
-                   stratum_gen_work( &stratum, &g_work, thr_id );
+              if ( algo_gate.gen_work_now( thr_id, &work, &g_work,
+                                           &end_nonce ) )
+                  stratum_gen_work( &stratum, &g_work, thr_id );
           }
           else
           {

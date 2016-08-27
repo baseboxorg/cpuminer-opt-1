@@ -115,7 +115,7 @@ void ( *hash_alt ) ( void*, const void*, uint32_t );
 void ( *hash_suw ) ( void*, const void* );
 
 //optional, safe to use default in most cases
-bool ( *gen_work_now )            ( int, struct work*, struct work* );
+bool ( *gen_work_now )           ( int, struct work*, struct work*, uint32_t* );
 void ( *init_nonce )              ( struct work*, struct work* , int );
 uint32_t *( *get_nonceptr )       ( uint32_t* );
 void ( *display_extra_data )      ( struct work*, uint64_t* );
@@ -191,8 +191,9 @@ void null_hash_suw();
 
 // optional safe targets, default listed first unless noted.
 
-bool std_gen_work_now( int thr_id, struct work *work, struct work *g_work ); 
-bool jr2_gen_work_now( int thr_id, struct work *work, struct work *g_work );
+bool std_gen_work_now( int thr_id, struct work *work, struct work *g_work );
+bool jr2_gen_work_now( int thr_id, struct work *work, struct work *g_work,
+                       uint32_t *end_nonce_ptr );
 
 uint32_t *std_get_nonceptr( uint32_t *work_data );
 uint32_t *jr2_get_nonceptr( uint32_t *work_data );

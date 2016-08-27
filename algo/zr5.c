@@ -213,8 +213,8 @@ bool zr5_gen_work_now( int thr_id, struct work *work, struct work *g_work )
    uint32_t end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1) - 0x20;
    // ignore POK in first word
    const int wkcmp_sz = 72;  // (19-1) * sizeof(uint32_t)
-   return ( *( algo_gate.get_nonceptr( work->data ) ) >= end_nonce
-            && !( memcmp( &work->data[1], &g_work->data[1], wkcmp_sz ) ) );
+   return ( *( algo_gate.get_nonceptr( work->data ) ) >= end_nonce )
+            && !( memcmp( &work->data[1], &g_work->data[1], wkcmp_sz ) );
 }
 
 int64_t zr5_get_max64 ()
