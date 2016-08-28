@@ -3,7 +3,7 @@
 #include "wolf-aes.h"
 #include "miner.h"
 
-#ifndef NO_AES_NI
+#if !defined(NO_AES_NI) && defined(__AVX__)
 
 static inline void ExpandAESKey256_sub1(__m128i *tmp1, __m128i *tmp2)
 {
@@ -83,8 +83,6 @@ void ExpandAESKey256(__m128i *keys, const __m128i *KeyBuf)
     keys[14] = tmp1;
 }
 
-#ifdef __AVX__
-
 #define AESENC(i,j) \
     State[j] = _mm_aesenc_si128(State[j], ExpandedKey[j][i]);
 
@@ -149,33 +147,6 @@ void AES256CBC(__m128i** data, const __m128i** next, __m128i ExpandedKey[][16], 
         }
     }
 }
-
-#else    // NO AVX
-
-static inline __m128i AES256Core(__m128i State, const __m128i *ExpandedKey)
-{
-        State = _mm_xor_si128(State, ExpandedKey[0]);
-
-        for(int i = 1; i < 14; ++i) State = _mm_aesenc_si128(State, ExpandedKey[i]);
-
-        return(_mm_aesenclast_si128(State, ExpandedKey[14]));
-}
-
-void AES256CBC(__m128i *Ciphertext, const __m128i *Plaintext, const __m128i *ExpandedKey, __m128i IV, uint32_t BlockCount)
-{
-        __m128i State = _mm_xor_si128(Plaintext[0], IV);
-        State = AES256Core(State, ExpandedKey);
-        Ciphertext[0] = State;
-
-        for(int i = 1; i < BlockCount; ++i)
-        {
-                State = _mm_xor_si128(Plaintext[i], Ciphertext[i - 1]);
-                State = AES256Core(State, ExpandedKey);
-                Ciphertext[i] = State;
-        }
-}
-
-#endif
 
 #endif
 

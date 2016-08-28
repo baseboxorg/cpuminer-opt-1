@@ -8,11 +8,10 @@
 #include "hodl-wolf.h"
 #include "miner.h"
 
-#ifndef NO_AES_NI               
+#if !defined(NO_AES_NI) && defined(__AVX__)
 
 void GenerateGarbageCore(CacheEntry *Garbage, int ThreadID, int ThreadCount, void *MidHash)
 {
-#ifdef __AVX__
     uint64_t* TempBufs[SHA512_PARALLEL_N];
     uint64_t* desination[SHA512_PARALLEL_N];
 
@@ -33,17 +32,6 @@ void GenerateGarbageCore(CacheEntry *Garbage, int ThreadID, int ThreadCount, voi
     for (int i=0; i<SHA512_PARALLEL_N; ++i) {
         free(TempBufs[i]);
     }
-#else
-    uint32_t TempBuf[8];
-    memcpy(TempBuf, MidHash, 32);
-
-    uint32_t StartChunk = ThreadID * (TOTAL_CHUNKS / ThreadCount);
-    for(uint32_t i = StartChunk; i < StartChunk + (TOTAL_CHUNKS / ThreadCount); ++i)
-    {
-        TempBuf[0] = i;
-        SHA512((uint8_t *)TempBuf, 32, ((uint8_t *)Garbage) + (i * GARBAGE_CHUNK_SIZE));
-    }
-#endif
 }
 
 /*
@@ -56,7 +44,6 @@ void Rev256(uint32_t *Dest, const uint32_t *Src)
 int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
                         uint64_t *hashes_done )
 {
-#ifdef __AVX__
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
     CacheEntry *Garbage = (CacheEntry*)hodl_scratchbuf;
@@ -128,72 +115,6 @@ int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
 	
     *hashes_done = CollisionCount;
     return(0);
-
-#else  // no AVX
-
-    uint32_t *pdata = work->data;
-    uint32_t *ptarget = work->target;
-    uint32_t BlockHdr[22], FinalPoW[8];
-    CacheEntry *Garbage = (CacheEntry*)hodl_scratchbuf;
-    CacheEntry Cache;
-    uint32_t CollisionCount = 0;
-
-    swab32_array( BlockHdr, pdata, 20 );
-        // Search for pattern in psuedorandom data      
-        int searchNumber = COMPARE_SIZE / opt_n_threads;
-        int startLoc = threadNumber * searchNumber;
-
-        for(int32_t k = startLoc; k < startLoc + searchNumber && !work_restart[threadNumber].restart; k++)
-        {
-           // copy data to first l2 cache
-           memcpy(Cache.dwords, Garbage + k, GARBAGE_SLICE_SIZE);
-#ifndef NO_AES_NI               
-           for(int j = 0; j < AES_ITERATIONS; j++)
-           {
-                CacheEntry TmpXOR;
-                __m128i ExpKey[16];
-
-                // use last 4 bytes of first cache as next location
-                uint32_t nextLocation = Cache.dwords[(GARBAGE_SLICE_SIZE >> 2)
-                                   - 1] & (COMPARE_SIZE - 1); //% COMPARE_SIZE;
-
-                // Copy data from indicated location to second l2 cache -
-                memcpy(&TmpXOR, Garbage + nextLocation, GARBAGE_SLICE_SIZE);
-                //XOR location data into second cache
-                for( int i = 0; i < (GARBAGE_SLICE_SIZE >> 4); ++i )
-                   TmpXOR.dqwords[i] = _mm_xor_si128( Cache.dqwords[i],
-                                                      TmpXOR.dqwords[i] );
-                // Key is last 32b of TmpXOR
-                // IV is last 16b of TmpXOR
-
-                ExpandAESKey256( ExpKey, TmpXOR.dqwords +
-                                 (GARBAGE_SLICE_SIZE / sizeof(__m128i)) - 2 );
-                AES256CBC( Cache.dqwords, TmpXOR.dqwords, ExpKey,
-                        TmpXOR.dqwords[ (GARBAGE_SLICE_SIZE / sizeof(__m128i))
-                                                             - 1 ], 256 );                 }
-#endif
-           // use last X bits as solution
-           if( ( Cache.dwords[ (GARBAGE_SLICE_SIZE >> 2) - 1 ]
-                                         & (COMPARE_SIZE - 1) ) < 1000 )
-           {
-              BlockHdr[20] = k;
-              BlockHdr[21] = Cache.dwords[ (GARBAGE_SLICE_SIZE >> 2) - 2 ];
-              sha256d( (uint8_t *)FinalPoW, (uint8_t *)BlockHdr, 88 );
-              CollisionCount++;
-              if( FinalPoW[7] <= ptarget[7] )
-              {
-                  pdata[20] = swab32( BlockHdr[20] );
-                  pdata[21] = swab32( BlockHdr[21] );
-                  *hashes_done = CollisionCount;
-                  return(1);
-              }
-           }
-        }
-
-    *hashes_done = CollisionCount;
-    return(0);
-
-#endif
 
 }
 
