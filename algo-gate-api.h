@@ -203,7 +203,8 @@ void jr2_init_nonce( struct work *work, struct work *g_work, int thr_id );
 
 void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *work,
                            int thr_id );
-void jr2_stratum_gen_work( struct stratum_ctx *sctx, struct work *work );
+void jr2_stratum_gen_work( struct stratum_ctx *sctx, struct work *work,
+                           int thr_id );
 
 void sha256d_gen_merkle_root( char *merkle_root, struct stratum_ctx *sctx );
 void SHA256_gen_merkle_root ( char *merkle_root, struct stratum_ctx *sctx );

@@ -353,6 +353,7 @@ bool register_json_rpc2( algo_gate_t *gate )
   gate->stratum_handle_response = (void*)&jr2_stratum_handle_response;
   gate->nonce_index             = JR2_NONCE_INDEX;
   jsonrpc_2 = true;   // still needed
+  opt_extranonce = false;
   return true;
  }
 
