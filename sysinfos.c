@@ -37,7 +37,6 @@ static float linux_cputemp(int core)
 
 	if (fscanf(fd, "%d", &val))
 		tc = val / 1000.0;
-
 	fclose(fd);
 	return tc;
 }

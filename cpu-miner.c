@@ -770,9 +770,16 @@ static int share_result( int result, struct work *work, const char *reason )
       sprintf(hc, "%.0f", hashcount );
    sprintf(hr, "%.2f", hashrate );
 
+#if ((defined(_WIN64) || defined(__WINDOWS__)))
    applog( LOG_NOTICE, "%s %lu/%lu (%s%%), %s %sH, %s %sH/s",
                        sres, ( result ? accepted_count : rejected_count ),
-                       total_submits, rate_s, hc, hc_units, hr, hr_units ); 
+                       total_submits, rate_s, hc, hc_units, hr, hr_units );
+#else
+   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), %s %sH, %s %sH/s, %dC",
+                       sres, ( result ? accepted_count : rejected_count ),
+                       total_submits, rate_s, hc, hc_units, hr, hr_units,
+                       (uint32_t)cpu_temp(0) );
+#endif
 
 //   applog(LOG_NOTICE, "accepted: %lu/%lu (%s%%), %s %sH, %s %sH/s %s",
 //              accepted_count, total_submits, accepted_rate_s,
@@ -1290,11 +1297,18 @@ static bool get_work(struct thr_info *thr, struct work *work)
 	if (opt_benchmark)
         {
 		uint32_t ts = (uint32_t) time(NULL);
+
+                // why 74? std cmp_size is 76, std data is 128
 		for (int n=0; n<74; n++) ((char*)work->data)[n] = n;
-		work->data[17] = swab32(ts);
-		memset(work->data + 19, 0x00, 52);
-		work->data[20] = 0x80000000;
-		work->data[31] = 0x00000280;
+
+//                work->data[algo_gate.ntime_index] = swab32(ts);  // ntime
+		work->data[17] = swab32(ts);  // ntime
+  
+              // this overwrites much of the for loop init
+//                memset( work->data + algo_gate.nonce_index, 0x00, 52);  // nonce..nonce+52
+		memset(work->data + 19, 0x00, 52);  // nonce..nonce+52
+		work->data[20] = 0x80000000;  // extraheader not used for jr2
+		work->data[31] = 0x00000280;  // extraheader not used for jr2
 		return true;
 	}
 	/* fill out work request message */
@@ -1530,9 +1544,11 @@ static void *miner_thread( void *userdata )
 
    // end_nonce gets read before being set so it needs to be initialized
    // what is an appropriate value that is completely neutral?
-   // zero seems to work.
-   uint32_t end_nonce = 0;
-//   uint32_t end_nonce = ( 0xffffffffU / opt_n_threads ) * (thr_id + 1) - 0x20;
+   // zero seems to work. No, it breaks benchmark.
+//   uint32_t end_nonce = 0;
+   uint32_t end_nonce = opt_benchmark
+                      ? ( 0xffffffffU / opt_n_threads ) * (thr_id + 1) - 0x20
+                      : 0;
    time_t   firstwork_time = 0;
    int  i;
    memset( &work, 0, sizeof(work) );
@@ -1784,8 +1800,13 @@ static void *miner_thread( void *userdata )
              else  // no fractions of a hash
                 sprintf( hc, "%.0f", hashcount );
              sprintf( hr, "%.2f", hashrate );
+#if ((defined(_WIN64) || defined(__WINDOWS__)))
              applog( LOG_NOTICE, "Total: %s %sH, %s %sH/s",
                                   hc, hc_units, hr, hr_units );
+#else
+             applog( LOG_NOTICE, "Total: %s %sH, %s %sH/s, %dC",
+                         hc, hc_units, hr, hr_units, (uint32_t)cpu_temp(0) );
+#endif
           }
        }
    }  // miner_thread loop

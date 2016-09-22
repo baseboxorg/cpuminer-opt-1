@@ -1,4 +1,4 @@
-Release 3.4.6 of cpuminer-opt is available for download with support for
+Release 3.4.7 of cpuminer-opt is available for download with support for
 Windows.
 
 cpuminer-opt now supports 38 algorithms on CPUs with at least SSE2
@@ -10,27 +10,10 @@ CPUs with AES_NI for even greater performance, including the Intel
 Westbridge and newer and AMD equivalent. See the performance
 comparison below.
 
-New in 3.4.6
+New in 3.4.7
 
-For users:
-
-- cryptolight algo is now supported with AES otimizations
-- display format changed for share submissions
-    - colour keyed "Accepted" or "Rejected" status.
-    - reject count and rate displayed when share is rejected.
-
-For developers:
-
-- code restructuring for detecting new work
-    - cleaned up detection and handling of new work
-    - removed call to stratum_gen_work from niner_thread.
-    - eliminated gen_work_now gate function.
-    - renamed gate function init_nonce to get_new_work.
-    - renamed gate function alloc_scratchbuf to miner_thread_init,
-      removed all scracthbuf references from miner_thread and moved
-      implementation to the local algo files of those algos that need it.
-    - moved most gate targets from algo-gate.c to cpu-miner.c removing
-      most mining related code from algo-gate-api.c.
+- fixed benchmark, except for x11evo
+- added CPU temperature to share submission report
 
 Users with non-SSE2 CPUs or who want to mine algos not supported by
 cpuminer-opt may find cpuminer-multi by TPruvot useful.
