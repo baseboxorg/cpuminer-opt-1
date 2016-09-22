@@ -577,8 +577,8 @@ MAKEFLAGS=
 # Identity of this package.
 PACKAGE_NAME='cpuminer-opt'
 PACKAGE_TARNAME='cpuminer-opt'
-PACKAGE_VERSION='3.4.5'
-PACKAGE_STRING='cpuminer-opt 3.4.5'
+PACKAGE_VERSION='3.4.6'
+PACKAGE_STRING='cpuminer-opt 3.4.6'
 PACKAGE_BUGREPORT=''
 PACKAGE_URL=''
 
