@@ -146,8 +146,9 @@ am__cpuminer_SOURCES_DIST = cpu-miner.c util.c uint256.cpp api.c \
 	algo/lbry.c algo/luffa/luffa.c \
 	algo/luffa/sse2/luffa_for_sse2.c algo/lyra2/lyra2.c \
 	algo/lyra2/sponge.c algo/lyra2/lyra2rev2.c \
-	algo/lyra2/lyra2re.c algo/keccak/sse2/keccak.c algo/m7m.c \
-	algo/neoscrypt.c algo/nist5.c algo/pluck.c algo/quark/quark.c \
+	algo/lyra2/lyra2re.c algo/lyra2/zcoin.c \
+	algo/keccak/sse2/keccak.c algo/m7m.c algo/neoscrypt.c \
+	algo/nist5.c algo/pluck.c algo/quark/quark.c \
 	algo/qubit/qubit.c algo/ripemd/sph_ripemd.c algo/scrypt.c \
 	algo/scryptjane/scrypt-jane.c algo/sha2/sha2.c \
 	algo/simd/sse2/nist.c algo/simd/sse2/vector.c \
@@ -261,6 +262,7 @@ am_cpuminer_OBJECTS = cpuminer-cpu-miner.$(OBJEXT) \
 	algo/lyra2/cpuminer-sponge.$(OBJEXT) \
 	algo/lyra2/cpuminer-lyra2rev2.$(OBJEXT) \
 	algo/lyra2/cpuminer-lyra2re.$(OBJEXT) \
+	algo/lyra2/cpuminer-zcoin.$(OBJEXT) \
 	algo/keccak/sse2/cpuminer-keccak.$(OBJEXT) \
 	algo/cpuminer-m7m.$(OBJEXT) algo/cpuminer-neoscrypt.$(OBJEXT) \
 	algo/cpuminer-nist5.$(OBJEXT) algo/cpuminer-pluck.$(OBJEXT) \
@@ -628,8 +630,9 @@ cpuminer_SOURCES = cpu-miner.c util.c uint256.cpp api.c sysinfos.c \
 	algo/lbry.c algo/luffa/luffa.c \
 	algo/luffa/sse2/luffa_for_sse2.c algo/lyra2/lyra2.c \
 	algo/lyra2/sponge.c algo/lyra2/lyra2rev2.c \
-	algo/lyra2/lyra2re.c algo/keccak/sse2/keccak.c algo/m7m.c \
-	algo/neoscrypt.c algo/nist5.c algo/pluck.c algo/quark/quark.c \
+	algo/lyra2/lyra2re.c algo/lyra2/zcoin.c \
+	algo/keccak/sse2/keccak.c algo/m7m.c algo/neoscrypt.c \
+	algo/nist5.c algo/pluck.c algo/quark/quark.c \
 	algo/qubit/qubit.c algo/ripemd/sph_ripemd.c algo/scrypt.c \
 	algo/scryptjane/scrypt-jane.c algo/sha2/sha2.c \
 	algo/simd/sse2/nist.c algo/simd/sse2/vector.c \
@@ -1129,6 +1132,8 @@ algo/lyra2/cpuminer-lyra2rev2.$(OBJEXT): algo/lyra2/$(am__dirstamp) \
 	algo/lyra2/$(DEPDIR)/$(am__dirstamp)
 algo/lyra2/cpuminer-lyra2re.$(OBJEXT): algo/lyra2/$(am__dirstamp) \
 	algo/lyra2/$(DEPDIR)/$(am__dirstamp)
+algo/lyra2/cpuminer-zcoin.$(OBJEXT): algo/lyra2/$(am__dirstamp) \
+	algo/lyra2/$(DEPDIR)/$(am__dirstamp)
 algo/keccak/sse2/$(am__dirstamp):
 	@$(MKDIR_P) algo/keccak/sse2
 	@: > algo/keccak/sse2/$(am__dirstamp)
@@ -1460,6 +1465,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@algo/lyra2/$(DEPDIR)/cpuminer-lyra2re.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/lyra2/$(DEPDIR)/cpuminer-lyra2rev2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/lyra2/$(DEPDIR)/cpuminer-sponge.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@algo/lyra2/$(DEPDIR)/cpuminer-zcoin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/quark/$(DEPDIR)/cpuminer-quark.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/qubit/$(DEPDIR)/cpuminer-qubit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@algo/ripemd/$(DEPDIR)/cpuminer-sph_ripemd.Po@am__quote@
@@ -2776,6 +2782,20 @@ algo/lyra2/cpuminer-lyra2re.obj: algo/lyra2/lyra2re.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='algo/lyra2/lyra2re.c' object='algo/lyra2/cpuminer-lyra2re.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -c -o algo/lyra2/cpuminer-lyra2re.obj `if test -f 'algo/lyra2/lyra2re.c'; then $(CYGPATH_W) 'algo/lyra2/lyra2re.c'; else $(CYGPATH_W) '$(srcdir)/algo/lyra2/lyra2re.c'; fi`
+
+algo/lyra2/cpuminer-zcoin.o: algo/lyra2/zcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -MT algo/lyra2/cpuminer-zcoin.o -MD -MP -MF algo/lyra2/$(DEPDIR)/cpuminer-zcoin.Tpo -c -o algo/lyra2/cpuminer-zcoin.o `test -f 'algo/lyra2/zcoin.c' || echo '$(srcdir)/'`algo/lyra2/zcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) algo/lyra2/$(DEPDIR)/cpuminer-zcoin.Tpo algo/lyra2/$(DEPDIR)/cpuminer-zcoin.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='algo/lyra2/zcoin.c' object='algo/lyra2/cpuminer-zcoin.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -c -o algo/lyra2/cpuminer-zcoin.o `test -f 'algo/lyra2/zcoin.c' || echo '$(srcdir)/'`algo/lyra2/zcoin.c
+
+algo/lyra2/cpuminer-zcoin.obj: algo/lyra2/zcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -MT algo/lyra2/cpuminer-zcoin.obj -MD -MP -MF algo/lyra2/$(DEPDIR)/cpuminer-zcoin.Tpo -c -o algo/lyra2/cpuminer-zcoin.obj `if test -f 'algo/lyra2/zcoin.c'; then $(CYGPATH_W) 'algo/lyra2/zcoin.c'; else $(CYGPATH_W) '$(srcdir)/algo/lyra2/zcoin.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) algo/lyra2/$(DEPDIR)/cpuminer-zcoin.Tpo algo/lyra2/$(DEPDIR)/cpuminer-zcoin.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='algo/lyra2/zcoin.c' object='algo/lyra2/cpuminer-zcoin.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -c -o algo/lyra2/cpuminer-zcoin.obj `if test -f 'algo/lyra2/zcoin.c'; then $(CYGPATH_W) 'algo/lyra2/zcoin.c'; else $(CYGPATH_W) '$(srcdir)/algo/lyra2/zcoin.c'; fi`
 
 algo/keccak/sse2/cpuminer-keccak.o: algo/keccak/sse2/keccak.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS) -MT algo/keccak/sse2/cpuminer-keccak.o -MD -MP -MF algo/keccak/sse2/$(DEPDIR)/cpuminer-keccak.Tpo -c -o algo/keccak/sse2/cpuminer-keccak.o `test -f 'algo/keccak/sse2/keccak.c' || echo '$(srcdir)/'`algo/keccak/sse2/keccak.c

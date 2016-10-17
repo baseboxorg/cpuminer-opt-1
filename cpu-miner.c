@@ -79,7 +79,7 @@ bool opt_debug_diff = false;
 bool opt_protocol = false;
 bool opt_benchmark = false;
 bool opt_redirect = true;
-bool opt_showdiff = false;
+bool opt_showdiff = true;
 bool opt_extranonce = true;
 bool want_longpoll = true;
 bool have_longpoll = false;
@@ -306,8 +306,8 @@ static bool work_decode(const json_t *val, struct work *work)
 {
     if ( !algo_gate.work_decode( val, work ) )
         return false;
-    if ((opt_showdiff || opt_max_diff > 0.) && !allow_mininginfo)
-        algo_gate.calc_network_diff( work );
+    if ( !allow_mininginfo )
+        net_diff = algo_gate.calc_network_diff( work );
     work->targetdiff = target_to_diff(work->target);
     // for api stats, on longpoll pools
     stratum_diff = work->targetdiff;
@@ -780,10 +780,6 @@ static int share_result( int result, struct work *work, const char *reason )
                        total_submits, rate_s, hc, hc_units, hr, hr_units,
                        (uint32_t)cpu_temp(0) );
 #endif
-
-//   applog(LOG_NOTICE, "accepted: %lu/%lu (%s%%), %s %sH, %s %sH/s %s",
-//              accepted_count, total_submits, accepted_rate_s,
-//              hc, hc_units, hr, hr_units, sres );
 
    if (reason)
    {
@@ -1467,7 +1463,7 @@ void std_build_extraheader( struct work* work, struct stratum_ctx* sctx )
    work->data[31] = 0x00000280;
 }
 
-void std_calc_network_diff( struct work* work )
+double std_calc_network_diff( struct work* work )
 {
    // sample for diff 43.281 : 1c05ea29
    // todo: endian reversed on longpoll could be zr5 specific...
@@ -1477,11 +1473,14 @@ void std_calc_network_diff( struct work* work )
    uint32_t bits  = ( nbits & 0xffffff );
    int16_t  shift = ( swab32(nbits) & 0xff ); // 0x1c = 28
    int m;
-   net_diff = (double)0x0000ffff / (double)bits;
+   double d = (double)0x0000ffff / (double)bits;
    for ( m = shift; m < 29; m++ )
-       net_diff *= 256.0;
+       d *= 256.0;
    for ( m = 29; m < shift; m++ )
-       net_diff /= 256.0;
+       d /= 256.0;
+   if ( opt_debug_diff )
+      applog(LOG_DEBUG, "net diff: %f -> shift %u, bits %08x", d, shift, bits);
+   return d;
 }
 
 uint32_t* std_get_nonceptr( uint32_t *work_data )
@@ -1501,7 +1500,8 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
    
    if ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
-      && ( clean_job || ( *nonceptr >= *end_nonce_ptr ) ) )
+      && ( clean_job || ( *nonceptr >= *end_nonce_ptr )
+         || ( work->job_id != g_work->job_id ) ) )
    {
      work_free( work );
      work_copy( work, g_work );
@@ -1518,6 +1518,7 @@ void jr2_get_new_work( struct work* work, struct work* g_work, int thr_id,
                      uint32_t *end_nonce_ptr )
 {
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
+
    // byte data[ 0..38, 43..75 ], skip over misaligned nonce [39..42]
    if ( memcmp( work->data, g_work->data, algo_gate.nonce_index )
      || memcmp( ((uint8_t*) work->data)   + JR2_WORK_CMP_INDEX_2,
@@ -1611,9 +1612,9 @@ static void *miner_thread( void *userdata )
       }
    }
 
-   if ( !algo_gate.miner_thread_init() )
+   if ( !algo_gate.miner_thread_init( thr_id ) )
    {
-      applog( LOG_ERR, "FAIL: thread %u failed to initialize");
+      applog( LOG_ERR, "FAIL: thread %u failed to initialize", thr_id );
       exit (1);
    }
 
@@ -1623,7 +1624,6 @@ static void *miner_thread( void *userdata )
        struct timeval tv_start, tv_end, diff;
        int64_t max64;
        int nonce_found = 0;
-
        if ( algo_gate.do_this_thread( thr_id ) )
        {
           if (have_stratum)
@@ -1661,6 +1661,8 @@ static void *miner_thread( void *userdata )
        } // do_this_thread
        algo_gate.resync_threads( &work );
 
+       // prevent dupes is called on every loop and has useful args so it
+       // is being used by zcoin to pass along the work height.
        if ( algo_gate.prevent_dupes( &work, &stratum, thr_id ) )
           continue;
        // prevent scans before a job is received
@@ -2051,8 +2053,7 @@ out:
 	return ret;
 }
 
-void std_stratum_get_g_work( struct stratum_ctx *sctx, struct work *g_work,
-                             int thr_id )
+void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 {
    unsigned char merkle_root[64] = { 0 };
    int i;
@@ -2077,8 +2078,7 @@ void std_stratum_get_g_work( struct stratum_ctx *sctx, struct work *g_work,
       g_work->data[9 + i] = be32dec( (uint32_t *) merkle_root + i );
 
    algo_gate.build_extraheader( g_work, sctx );
-   if ( opt_showdiff || opt_max_diff > 0. )
-       algo_gate.calc_network_diff( g_work );
+   net_diff = algo_gate.calc_network_diff( g_work );
    algo_gate.set_work_data_endian( g_work );
    pthread_mutex_unlock( &sctx->work_lock );
 
@@ -2092,33 +2092,27 @@ void std_stratum_get_g_work( struct stratum_ctx *sctx, struct work *g_work,
    }
    /* set target */
    algo_gate.set_target( g_work, sctx->job.diff );
+
+   if ( stratum_diff != sctx->job.diff )
+   {
+     char sdiff[32] = { 0 };
+     // store for api stats
+     stratum_diff = sctx->job.diff;
+     if ( opt_showdiff && g_work->targetdiff != stratum_diff )
+     {
+        snprintf( sdiff, 32, " (%.5f)", g_work->targetdiff );
+        applog( LOG_WARNING, "Stratum difficulty set to %g%s", stratum_diff,
+                        sdiff );
+     }
+   }
 }
 
-void jr2_stratum_get_g_work( struct stratum_ctx *sctx, struct work *g_work,
-                             int thr_id )
+void jr2_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 {
    pthread_mutex_lock( &sctx->work_lock );
    work_free( g_work );
    work_copy( g_work, &sctx->work );
    pthread_mutex_unlock( &sctx->work_lock );
-}
-
-static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work,
-                              int thr_id )
-{
-      algo_gate.stratum_get_g_work( sctx, g_work, thr_id );
-      if ( stratum_diff != sctx->job.diff )
-      {
-        char sdiff[32] = { 0 };
-        // store for api stats
-        stratum_diff = sctx->job.diff;
-        if ( opt_showdiff && g_work->targetdiff != stratum_diff )
-        {
-           snprintf( sdiff, 32, " (%.5f)", g_work->targetdiff );
-           applog( LOG_WARNING, "Stratum difficulty set to %g%s", stratum_diff,
-                           sdiff );
-        }
-      }
 }
 
 static void *stratum_thread(void *userdata )
@@ -2169,6 +2163,7 @@ static void *stratum_thread(void *userdata )
  
 	       sleep(opt_fail_pause);
            }
+
 	   if (jsonrpc_2)
            {
 		work_free(&g_work);
@@ -2176,15 +2171,15 @@ static void *stratum_thread(void *userdata )
 	   }
 	}
 
-	if (stratum.job.job_id &&
-	     (!g_work_time || strcmp(stratum.job.job_id, g_work.job_id)) )
+        if (stratum.job.job_id &&
+             (!g_work_time || strcmp(stratum.job.job_id, g_work.job_id)) )
 	{
 	   pthread_mutex_lock(&g_work_lock);
-	   stratum_gen_work(&stratum, &g_work, 0 );
+           algo_gate.stratum_gen_work( &stratum, &g_work );
 	   time(&g_work_time);
 	   pthread_mutex_unlock(&g_work_lock);
 
-	   if (stratum.job.clean || jsonrpc_2)
+           if (stratum.job.clean || jsonrpc_2)
            {
 		static uint32_t last_bloc_height;
 		if (!opt_quiet && last_bloc_height != stratum.bloc_height)
@@ -2562,7 +2557,7 @@ void parse_arg(int key, char *arg )
 		opt_extranonce = false;
 		break;
 	case 1013:
-		opt_showdiff = true;
+		opt_showdiff = false;
 		break;
 	case 1016:			/* --coinbase-addr */
 		pk_script_size = address_to_script(pk_script, sizeof(pk_script), arg);
