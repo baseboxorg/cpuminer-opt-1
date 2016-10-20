@@ -9,7 +9,7 @@ rm -f config.status
 x86_64-w64-mingw32-windres res/icon.rc icon.o
 
 # gcc 5.x only
-CFLAGS="-O3 -march=skylake -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" LDFLAGS="icon.o -static" ./configure --with-curl
+CFLAGS="-O3 -march=skylake -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" LDFLAGS="icon.o" ./configure --with-curl
 
 make
 

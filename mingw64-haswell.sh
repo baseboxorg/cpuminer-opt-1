@@ -8,7 +8,7 @@ rm -f config.status
 # icon
 x86_64-w64-mingw32-windres res/icon.rc icon.o
 
-CFLAGS="-O3 -march=core-avx2 -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" LDFLAGS="icon.o -static" ./configure --with-curl
+CFLAGS="-O3 -march=core-avx2 -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" LDFLAGS="icon.o" ./configure --with-curl
 
 make
 
